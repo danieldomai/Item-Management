@@ -1,21 +1,23 @@
 import { useState, useEffect } from 'react'
-import { Plus, UtensilsCrossed, Package } from 'lucide-react'
+import { LayoutDashboard, UtensilsCrossed, Package, Plus, Menu, X } from 'lucide-react'
 import { supabase } from './supabaseClient'
-import LowStockBanner from './components/LowStockBanner'
-import ItemCard from './components/ItemCard'
+import Dashboard from './components/Dashboard'
+import CategoryPage from './components/CategoryPage'
 import ItemFormModal from './components/ItemFormModal'
 
-const TABS = [
+const NAV_ITEMS = [
+  { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { key: 'Pantry', label: 'Pantry', icon: UtensilsCrossed },
   { key: 'Supplies', label: 'Supplies', icon: Package },
 ]
 
 export default function App() {
   const [items, setItems] = useState([])
-  const [activeTab, setActiveTab] = useState('Pantry')
+  const [page, setPage] = useState('dashboard')
   const [modalOpen, setModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const fetchItems = async () => {
     const { data, error } = await supabase
@@ -81,67 +83,95 @@ export default function App() {
     setModalOpen(true)
   }
 
-  const lowStockItems = items.filter(
-    (i) => i.current_quantity <= i.low_stock_threshold
-  )
-  const filteredItems = items.filter((i) => i.category === activeTab)
+  const navigate = (key) => {
+    setPage(key)
+    setMenuOpen(false)
+  }
+
+  const currentNav = NAV_ITEMS.find((n) => n.key === page)
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/80 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-gray-200 bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-lg items-center justify-between px-4 py-3">
-          <h1 className="text-lg font-bold text-gray-900">Household Inventory</h1>
-          <button
-            onClick={openAdd}
-            className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white active:bg-blue-700 hover:bg-blue-700 transition"
-          >
-            <Plus size={18} />
-            Add Item
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="rounded-lg p-2 hover:bg-gray-100 active:bg-gray-200 transition"
+              aria-label="Menu"
+            >
+              {menuOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+            <h1 className="text-lg font-bold text-gray-900">
+              {currentNav?.label || 'Dashboard'}
+            </h1>
+          </div>
+          {page !== 'dashboard' && (
+            <button
+              onClick={openAdd}
+              className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white active:bg-blue-700 hover:bg-blue-700 transition"
+            >
+              <Plus size={18} />
+              Add Item
+            </button>
+          )}
         </div>
       </header>
 
-      <main className="mx-auto max-w-lg px-4 py-4 space-y-4">
-        {/* Low Stock Banner */}
-        <LowStockBanner items={lowStockItems} />
+      {/* Mobile Menu Overlay */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-10 bg-black/30" onClick={() => setMenuOpen(false)} />
+      )}
 
-        {/* Tabs */}
-        <div className="flex gap-2 rounded-xl bg-gray-200 p-1">
-          {TABS.map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold transition ${
-                activeTab === key
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Icon size={18} />
-              {label}
-            </button>
-          ))}
+      {/* Slide-out Menu */}
+      <nav
+        className={`fixed top-0 left-0 z-30 h-full w-64 bg-white shadow-xl transition-transform duration-200 ease-in-out ${
+          menuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4">
+          <span className="text-base font-bold text-gray-900">Household Inventory</span>
+          <button
+            onClick={() => setMenuOpen(false)}
+            className="rounded-lg p-1.5 hover:bg-gray-100"
+          >
+            <X size={20} />
+          </button>
         </div>
+        <ul className="p-3 space-y-1">
+          {NAV_ITEMS.map(({ key, label, icon: Icon }) => (
+            <li key={key}>
+              <button
+                onClick={() => navigate(key)}
+                className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                  page === key
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <Icon size={20} />
+                {label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
-        {/* Item List */}
+      {/* Main Content */}
+      <main className="mx-auto max-w-lg px-4 py-5">
         {loading ? (
           <p className="py-12 text-center text-gray-400">Loading...</p>
-        ) : filteredItems.length === 0 ? (
-          <p className="py-12 text-center text-gray-400">
-            No {activeTab.toLowerCase()} items yet. Tap "Add Item" to get started.
-          </p>
+        ) : page === 'dashboard' ? (
+          <Dashboard items={items} />
         ) : (
-          <div className="space-y-2">
-            {filteredItems.map((item) => (
-              <ItemCard
-                key={item.id}
-                item={item}
-                onEdit={openEdit}
-                onDelete={handleDelete}
-              />
-            ))}
-          </div>
+          <CategoryPage
+            category={page}
+            items={items}
+            onAdd={openAdd}
+            onEdit={openEdit}
+            onDelete={handleDelete}
+          />
         )}
       </main>
 
@@ -151,7 +181,7 @@ export default function App() {
         onClose={() => { setModalOpen(false); setEditingItem(null) }}
         onSave={handleSave}
         initialData={editingItem}
-        category={activeTab}
+        category={page === 'dashboard' ? 'Pantry' : page}
       />
     </div>
   )

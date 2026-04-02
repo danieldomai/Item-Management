@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "/Users/danieldomai/.nvm/versions/node/v24.14.0/bin/node",
+      "env": { "PATH": "/Users/danieldomai/.nvm/versions/node/v24.14.0/bin:/usr/bin:/bin" },
+      "runtimeArgs": ["/Users/danieldomai/.nvm/versions/node/v24.14.0/lib/node_modules/npm/bin/npm-cli.js", "run", "dev"],
+      "port": 5173
+    }
+  ]
+}
