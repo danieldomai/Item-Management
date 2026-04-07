@@ -23,7 +23,7 @@ export default function App() {
     const { data, error } = await supabase
       .from('inventory')
       .select('*')
-      .order('name')
+      .order('last_updated', { ascending: false })
     if (error) {
       console.error('Error fetching items:', error)
     } else {
@@ -36,8 +36,14 @@ export default function App() {
     fetchItems()
   }, [])
 
+  // Collect all unique tags across all items for reuse
+  const allTags = [...new Set(items.flatMap((i) => i.tags || []))].sort()
+
   const handleSave = async (item) => {
+    const now = new Date().toISOString()
+
     if (item.id) {
+      // Editing an existing item — just update
       const { error } = await supabase
         .from('inventory')
         .update({
@@ -46,20 +52,44 @@ export default function App() {
           current_quantity: item.current_quantity,
           unit: item.unit,
           low_stock_threshold: item.low_stock_threshold,
+          tags: item.tags || [],
+          last_updated: now,
         })
         .eq('id', item.id)
       if (error) console.error('Error updating:', error)
     } else {
-      const { error } = await supabase
-        .from('inventory')
-        .insert({
-          name: item.name,
-          category: item.category,
-          current_quantity: item.current_quantity,
-          unit: item.unit,
-          low_stock_threshold: item.low_stock_threshold,
-        })
-      if (error) console.error('Error inserting:', error)
+      // New item — check for case-insensitive duplicate
+      const duplicate = items.find(
+        (existing) =>
+          existing.name.toLowerCase() === item.name.toLowerCase() &&
+          existing.category === item.category
+      )
+
+      if (duplicate) {
+        // Merge: add quantity to existing item, update timestamp
+        const { error } = await supabase
+          .from('inventory')
+          .update({
+            current_quantity: duplicate.current_quantity + item.current_quantity,
+            tags: [...new Set([...(duplicate.tags || []), ...(item.tags || [])])],
+            last_updated: now,
+          })
+          .eq('id', duplicate.id)
+        if (error) console.error('Error merging:', error)
+      } else {
+        const { error } = await supabase
+          .from('inventory')
+          .insert({
+            name: item.name,
+            category: item.category,
+            current_quantity: item.current_quantity,
+            unit: item.unit,
+            low_stock_threshold: item.low_stock_threshold,
+            tags: item.tags || [],
+            last_updated: now,
+          })
+        if (error) console.error('Error inserting:', error)
+      }
     }
     setModalOpen(false)
     setEditingItem(null)
@@ -182,6 +212,7 @@ export default function App() {
         onSave={handleSave}
         initialData={editingItem}
         category={page === 'dashboard' ? 'Pantry' : page}
+        allTags={allTags}
       />
     </div>
   )

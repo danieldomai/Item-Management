@@ -12,16 +12,22 @@ create table if not exists inventory (
   current_quantity  float not null default 0,
   unit              text not null default 'whole',
   low_stock_threshold float not null default 1,
-  created_at        timestamptz not null default now()
+  tags              text[] not null default '{}',
+  created_at        timestamptz not null default now(),
+  last_updated      timestamptz not null default now()
 );
 
 -- 2. Enable Row Level Security (required by Supabase)
 alter table inventory enable row level security;
 
 -- 3. Allow anonymous / authenticated reads and writes
---    (For a personal household app with the anon key, this is fine.
---     Tighten these policies if you add authentication later.)
 create policy "Allow full access" on inventory
   for all
   using (true)
   with check (true);
+
+-- =============================================================
+-- MIGRATION: Run this block if your table already exists
+-- =============================================================
+-- alter table inventory add column if not exists tags text[] not null default '{}';
+-- alter table inventory add column if not exists last_updated timestamptz not null default now();
