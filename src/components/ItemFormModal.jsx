@@ -10,6 +10,7 @@ export default function ItemFormModal({ isOpen, onClose, onSave, initialData, ca
     current_quantity: '',
     unit: 'whole',
     low_stock_threshold: '',
+    target_capacity: '',
     tags: [],
   })
   const [tagInput, setTagInput] = useState('')
@@ -22,6 +23,7 @@ export default function ItemFormModal({ isOpen, onClose, onSave, initialData, ca
         current_quantity: String(initialData.current_quantity),
         unit: initialData.unit,
         low_stock_threshold: String(initialData.low_stock_threshold),
+        target_capacity: initialData.target_capacity ? String(initialData.target_capacity) : '',
         tags: initialData.tags || [],
       })
     } else {
@@ -31,6 +33,7 @@ export default function ItemFormModal({ isOpen, onClose, onSave, initialData, ca
         current_quantity: '',
         unit: 'whole',
         low_stock_threshold: '',
+        target_capacity: '',
         tags: [],
       })
     }
@@ -48,6 +51,7 @@ export default function ItemFormModal({ isOpen, onClose, onSave, initialData, ca
       current_quantity: parseFloat(form.current_quantity) || 0,
       unit: form.unit,
       low_stock_threshold: parseFloat(form.low_stock_threshold) || 1,
+      target_capacity: parseFloat(form.target_capacity) || null,
       tags: form.tags,
     })
   }
@@ -146,22 +150,36 @@ export default function ItemFormModal({ isOpen, onClose, onSave, initialData, ca
             </div>
           </div>
 
-          <div>
-            <label className={labelClass}>Low Stock Threshold</label>
-            <input
-              className={inputClass}
-              type="number"
-              step="any"
-              min="0"
-              required
-              placeholder="1"
-              value={form.low_stock_threshold}
-              onChange={(e) => setForm({ ...form, low_stock_threshold: e.target.value })}
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              You'll see a warning when quantity falls to or below this number.
-            </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>Low Stock Threshold</label>
+              <input
+                className={inputClass}
+                type="number"
+                step="any"
+                min="0"
+                required
+                placeholder="1"
+                value={form.low_stock_threshold}
+                onChange={(e) => setForm({ ...form, low_stock_threshold: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Target Capacity</label>
+              <input
+                className={inputClass}
+                type="number"
+                step="any"
+                min="0"
+                placeholder="Optional"
+                value={form.target_capacity}
+                onChange={(e) => setForm({ ...form, target_capacity: e.target.value })}
+              />
+            </div>
           </div>
+          <p className="!mt-1 text-xs text-gray-500">
+            Low stock alert triggers at threshold or when below 20% of target capacity.
+          </p>
 
           {/* Tags */}
           <div>

@@ -12,6 +12,7 @@ create table if not exists inventory (
   current_quantity  float not null default 0,
   unit              text not null default 'whole',
   low_stock_threshold float not null default 1,
+  target_capacity   float,
   tags              text[] not null default '{}',
   created_at        timestamptz not null default now(),
   last_updated      timestamptz not null default now()
@@ -31,3 +32,4 @@ create policy "Allow full access" on inventory
 -- =============================================================
 -- alter table inventory add column if not exists tags text[] not null default '{}';
 -- alter table inventory add column if not exists last_updated timestamptz not null default now();
+-- alter table inventory add column if not exists target_capacity float;

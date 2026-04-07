@@ -3,6 +3,7 @@ import { LayoutDashboard, UtensilsCrossed, Package, Plus, Menu, X } from 'lucide
 import { supabase } from './supabaseClient'
 import Dashboard from './components/Dashboard'
 import CategoryPage from './components/CategoryPage'
+import ShoppingList from './components/ShoppingList'
 import ItemFormModal from './components/ItemFormModal'
 
 const NAV_ITEMS = [
@@ -18,6 +19,7 @@ export default function App() {
   const [editingItem, setEditingItem] = useState(null)
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [shoppingList, setShoppingList] = useState([])
 
   const fetchItems = async () => {
     const { data, error } = await supabase
@@ -39,6 +41,25 @@ export default function App() {
   // Collect all unique tags across all items for reuse
   const allTags = [...new Set(items.flatMap((i) => i.tags || []))].sort()
 
+  const handleGenerateList = (replenishItems) => {
+    const list = replenishItems.map((item) => ({
+      listId: crypto.randomUUID(),
+      inventoryId: item.id,
+      name: item.name,
+      unit: item.unit,
+      current_quantity: item.current_quantity,
+      target_capacity: item.target_capacity,
+      amountToBuy: '',
+      checked: false,
+      isManual: false,
+    }))
+    setShoppingList(list)
+  }
+
+  const handleCompleteList = () => {
+    setShoppingList([])
+  }
+
   const handleSave = async (item) => {
     const now = new Date().toISOString()
 
@@ -52,6 +73,7 @@ export default function App() {
           current_quantity: item.current_quantity,
           unit: item.unit,
           low_stock_threshold: item.low_stock_threshold,
+          target_capacity: item.target_capacity || null,
           tags: item.tags || [],
           last_updated: now,
         })
@@ -85,6 +107,7 @@ export default function App() {
             current_quantity: item.current_quantity,
             unit: item.unit,
             low_stock_threshold: item.low_stock_threshold,
+            target_capacity: item.target_capacity || null,
             tags: item.tags || [],
             last_updated: now,
           })
@@ -189,11 +212,20 @@ export default function App() {
       </nav>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-lg px-4 py-5">
+      <main className="mx-auto max-w-lg px-4 py-5 space-y-5">
+        {/* Shopping List (always visible when active, above everything) */}
+        {shoppingList.length > 0 && (
+          <ShoppingList
+            listItems={shoppingList}
+            setListItems={setShoppingList}
+            onComplete={handleCompleteList}
+          />
+        )}
+
         {loading ? (
           <p className="py-12 text-center text-gray-400">Loading...</p>
         ) : page === 'dashboard' ? (
-          <Dashboard items={items} />
+          <Dashboard items={items} onGenerateList={handleGenerateList} />
         ) : (
           <CategoryPage
             category={page}
