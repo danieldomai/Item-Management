@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { X, Plus, ShoppingCart, Check, Trash2 } from 'lucide-react'
+import { Plus, ShoppingCart, Check, Trash2 } from 'lucide-react'
 
-export default function ShoppingList({ listItems, setListItems, onComplete }) {
+export default function ShoppingList({ listItems, setListItems, onComplete, emptyModeManualAdd = false }) {
   const [newItemName, setNewItemName] = useState('')
 
   const totalItems = listItems.length
@@ -13,7 +13,6 @@ export default function ShoppingList({ listItems, setListItems, onComplete }) {
       const updated = prev.map((item) =>
         item.listId === id ? { ...item, checked: !item.checked } : item
       )
-      // Sort: unchecked first, checked at bottom
       return [
         ...updated.filter((i) => !i.checked),
         ...updated.filter((i) => i.checked),
@@ -36,7 +35,6 @@ export default function ShoppingList({ listItems, setListItems, onComplete }) {
   const addManualItem = () => {
     const name = newItemName.trim()
     if (!name) return
-    // Case-insensitive duplicate check within the list
     if (listItems.some((i) => i.name.toLowerCase() === name.toLowerCase())) {
       setNewItemName('')
       return
@@ -63,6 +61,28 @@ export default function ShoppingList({ listItems, setListItems, onComplete }) {
     }
   }
 
+  // Empty-state variant: just a manual-add input
+  if (totalItems === 0 && emptyModeManualAdd) {
+    return (
+      <div className="flex gap-2">
+        <input
+          type="text"
+          placeholder="Add an item manually..."
+          value={newItemName}
+          onChange={(e) => setNewItemName(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none"
+        />
+        <button
+          onClick={addManualItem}
+          className="shrink-0 rounded-lg bg-emerald-600 px-3 py-2.5 text-white hover:bg-emerald-700 active:bg-emerald-800 transition"
+        >
+          <Plus size={18} />
+        </button>
+      </div>
+    )
+  }
+
   if (totalItems === 0) return null
 
   return (
@@ -73,12 +93,12 @@ export default function ShoppingList({ listItems, setListItems, onComplete }) {
           <ShoppingCart size={20} className="text-emerald-700" />
           <h3 className="text-base font-semibold text-emerald-900">Shopping List</h3>
         </div>
-        <div className="flex gap-3 text-xs font-medium">
+        <div className="flex gap-2 text-xs font-medium">
           <span className="rounded-full bg-emerald-200 px-2.5 py-1 text-emerald-800">
-            {totalItems} total
+            Total: {totalItems}
           </span>
           <span className="rounded-full bg-white px-2.5 py-1 text-emerald-700 border border-emerald-300">
-            {remainingCount} remaining
+            Remaining: {remainingCount}
           </span>
         </div>
       </div>
@@ -106,13 +126,10 @@ export default function ShoppingList({ listItems, setListItems, onComplete }) {
         {listItems.map((item) => (
           <li
             key={item.listId}
-            className={`flex items-center gap-3 rounded-xl border bg-white p-3 transition-all duration-300 ${
-              item.checked
-                ? 'border-gray-200 opacity-60'
-                : 'border-emerald-200'
+            className={`flex items-center gap-3 rounded-xl border bg-white p-3 transition-all duration-300 ease-in-out ${
+              item.checked ? 'border-gray-200 opacity-50' : 'border-emerald-200'
             }`}
           >
-            {/* Checkbox */}
             <button
               onClick={() => toggleCheck(item.listId)}
               className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 transition ${
@@ -124,7 +141,6 @@ export default function ShoppingList({ listItems, setListItems, onComplete }) {
               {item.checked && <Check size={14} />}
             </button>
 
-            {/* Name & Quantity */}
             <div className="min-w-0 flex-1">
               <span
                 className={`block text-sm font-medium transition-all duration-300 ${
@@ -140,7 +156,6 @@ export default function ShoppingList({ listItems, setListItems, onComplete }) {
               )}
             </div>
 
-            {/* Amount to Buy */}
             <input
               type="number"
               step="any"
@@ -153,10 +168,10 @@ export default function ShoppingList({ listItems, setListItems, onComplete }) {
               }`}
             />
 
-            {/* Remove */}
             <button
               onClick={() => removeItem(item.listId)}
               className="shrink-0 rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition"
+              aria-label="Delete"
             >
               <Trash2 size={16} />
             </button>
@@ -164,7 +179,6 @@ export default function ShoppingList({ listItems, setListItems, onComplete }) {
         ))}
       </ul>
 
-      {/* Complete Button */}
       <button
         onClick={onComplete}
         className="mt-4 w-full rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700 active:bg-emerald-800 transition"

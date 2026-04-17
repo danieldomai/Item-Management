@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Plus, ArrowUpDown, Tag } from 'lucide-react'
+import { useInventory } from '../context/InventoryContext'
 import ItemCard from './ItemCard'
 
 const SORT_OPTIONS = [
@@ -29,33 +30,32 @@ function groupByTags(items) {
 
   for (const item of items) {
     const tags = item.tags || []
-    if (tags.length === 0) {
-      uncategorized.push(item)
-    } else {
-      for (const tag of tags) {
-        if (!groups[tag]) groups[tag] = []
-        groups[tag].push(item)
-      }
+    if (tags.length === 0) uncategorized.push(item)
+    else for (const tag of tags) {
+      if (!groups[tag]) groups[tag] = []
+      groups[tag].push(item)
     }
   }
 
-  // Sort tag names alphabetically
   const sortedGroups = Object.keys(groups)
     .sort()
     .map((tag) => ({ tag, items: groups[tag] }))
 
-  if (uncategorized.length > 0) {
-    sortedGroups.push({ tag: 'Uncategorized', items: uncategorized })
-  }
-
+  if (uncategorized.length > 0) sortedGroups.push({ tag: 'Uncategorized', items: uncategorized })
   return sortedGroups
 }
 
-export default function CategoryPage({ category, items, onAdd, onEdit, onDelete }) {
+export default function CategoryPage({ category, onAdd, onEdit }) {
+  const { items, deleteItem } = useInventory()
   const [sortBy, setSortBy] = useState('recent')
   const filtered = items.filter((i) => i.category === category)
   const sorted = sortItems(filtered, sortBy)
   const tagGroups = groupByTags(filtered)
+
+  const handleDelete = async (id) => {
+    if (!confirm('Delete this item?')) return
+    await deleteItem(id)
+  }
 
   return (
     <div className="space-y-4">
@@ -70,7 +70,6 @@ export default function CategoryPage({ category, items, onAdd, onEdit, onDelete 
         </button>
       </div>
 
-      {/* Sort Dropdown */}
       {filtered.length > 0 && (
         <div className="flex items-center gap-2">
           <ArrowUpDown size={16} className="text-gray-400" />
@@ -91,7 +90,6 @@ export default function CategoryPage({ category, items, onAdd, onEdit, onDelete 
           No {category.toLowerCase()} items yet. Tap "Add Item" to get started.
         </p>
       ) : sortBy === 'tags' ? (
-        // Tag grouped view
         <div className="space-y-5">
           {tagGroups.map(({ tag, items: groupItems }) => (
             <div key={tag}>
@@ -104,17 +102,16 @@ export default function CategoryPage({ category, items, onAdd, onEdit, onDelete 
               </div>
               <div className="space-y-2">
                 {groupItems.map((item) => (
-                  <ItemCard key={item.id} item={item} onEdit={onEdit} onDelete={onDelete} />
+                  <ItemCard key={item.id} item={item} onEdit={onEdit} onDelete={handleDelete} />
                 ))}
               </div>
             </div>
           ))}
         </div>
       ) : (
-        // Flat sorted view
         <div className="space-y-2">
           {sorted.map((item) => (
-            <ItemCard key={item.id} item={item} onEdit={onEdit} onDelete={onDelete} />
+            <ItemCard key={item.id} item={item} onEdit={onEdit} onDelete={handleDelete} />
           ))}
         </div>
       )}
